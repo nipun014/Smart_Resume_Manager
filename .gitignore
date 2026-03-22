@@ -1,0 +1,11 @@
+.venv/
+
+# Resume example/test files
+image_resume.jpg
+image_resume_2.jpg
+2_column_resume.pdf
+Nipun G - Resume.docx
+NIPUN G NAIR - Resume.pdf
+
+# Markdown docs
+*.md
