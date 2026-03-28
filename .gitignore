@@ -1,11 +1,18 @@
 .venv/
+.env
 
 # Resume example/test files
 image_resume.jpg
 image_resume_2.jpg
 2_column_resume.pdf
 Nipun G - Resume.docx
-NIPUN G NAIR - Resume.pdf
+NIPUN_G_NAIR_Resume.pdf
+computer-scientist-resume-example.png
 
 # Markdown docs
 *.md
+*.json
+*.txt
+test_data
+test_outputs
+uploads

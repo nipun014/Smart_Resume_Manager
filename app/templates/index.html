@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smart Talent</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body class="page page-index">
+    <main class="shell">
+        <header class="hero">
+            <h1>Smart Talent Selection</h1>
+            <p class="subtitle">Paste a job description, upload resumes, and get ranked candidates with skill-level insights.</p>
+        </header>
+
+        <form class="card form-grid" action="/analyze" method="POST" enctype="multipart/form-data">
+            <label for="job_title">Job Title</label>
+            <input id="job_title" type="text" name="job_title" placeholder="e.g. Data Analyst Intern">
+
+            <label for="jd_text">Job Description</label>
+            <textarea id="jd_text" name="jd_text" rows="8" placeholder="Paste the full job description here..." required></textarea>
+
+            <label for="resumes">Resume Files</label>
+            <input id="resumes" type="file" name="resumes" multiple required>
+            <p class="hint">Supported formats: PDF, DOCX, TXT, JPG, PNG</p>
+
+            <button type="submit">Analyze Candidates</button>
+        </form>
+    </main>
+</body>
+</html>

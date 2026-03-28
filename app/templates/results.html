@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body class="page page-results">
+    <main class="shell">
+        <header class="results-header">
+            <div>
+                <h1>Candidate Rankings</h1>
+                <p class="subtitle">Total candidates analyzed: {{ candidates | length }}</p>
+            </div>
+            <a class="back-link" href="/">Analyze More Resumes</a>
+        </header>
+
+        {% if candidates and candidates | length > 0 %}
+        <section class="table-wrap card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Name</th>
+                        <th>Final Score</th>
+                        <th>Keyword Score</th>
+                        <th>Semantic Score</th>
+                        <th>Matched Skills</th>
+                        <th>Missing Skills</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for candidate in candidates %}
+                    <tr>
+                        <td>#{{ loop.index }}</td>
+                        <td>
+                            <span class="candidate-name">{{ candidate.name }}</span>
+                            {% if candidate.justification is defined and candidate.justification %}
+                                <small class="justification">{{ candidate.justification }}</small>
+                            {% endif %}
+                        </td>
+                        <td>{{ candidate.score }}%</td>
+                        <td>{{ candidate.keyword_score }}%</td>
+                        <td>{{ candidate.semantic_score }}%</td>
+                        <td>
+                            {% if candidate.matched_skills %}
+                                {{ candidate.matched_skills | join(', ') }}
+                            {% else %}
+                                None
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if candidate.missing_skills %}
+                                {{ candidate.missing_skills | join(', ') }}
+                            {% else %}
+                                None
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+        {% else %}
+        <section class="card empty-state">
+            <h2>No candidates were processed</h2>
+            <p>Upload one or more resumes and try again.</p>
+            <a class="back-link" href="/">Go Back</a>
+        </section>
+        {% endif %}
+    </main>
+</body>
+</html>
