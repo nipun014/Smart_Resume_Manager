@@ -1,4 +1,4 @@
-# Cymonic Resume-JD Smart Matcher
+# Smart Resume Manager
 
 ## Project Title
 Cymonic Resume-JD Smart Matcher
