@@ -38,19 +38,27 @@
                                 <small class="justification">{{ candidate.justification }}</small>
                             {% endif %}
                         </td>
-                        <td>{{ candidate.score }}%</td>
+                        <td>
+                            <span class="{% if candidate.score >= 60 %}score-good{% elif candidate.score >= 35 %}score-mid{% else %}score-bad{% endif %}">
+                                {{ candidate.score }}%
+                            </span>
+                        </td>
                         <td>{{ candidate.keyword_score }}%</td>
                         <td>{{ candidate.semantic_score }}%</td>
                         <td>
                             {% if candidate.matched_skills %}
-                                {{ candidate.matched_skills | join(', ') }}
+                                {% for skill in candidate.matched_skills %}
+                                    <span class="tag tag-match">{{ skill }}</span>
+                                {% endfor %}
                             {% else %}
                                 None
                             {% endif %}
                         </td>
                         <td>
                             {% if candidate.missing_skills %}
-                                {{ candidate.missing_skills | join(', ') }}
+                                {% for skill in candidate.missing_skills %}
+                                    <span class="tag tag-miss">{{ skill }}</span>
+                                {% endfor %}
                             {% else %}
                                 None
                             {% endif %}

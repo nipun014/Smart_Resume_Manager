@@ -5,13 +5,21 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body class="page page-index">
+    <div id="loading-overlay" class="loading-overlay" aria-hidden="true">
+        <div class="loading-card" role="status" aria-live="polite">
+            <div class="spinner" aria-hidden="true"></div>
+            <h2>Analyzing Resumes</h2>
+            <p>This can take a moment for OCR and semantic scoring.</p>
+        </div>
+    </div>
+
     <main class="shell">
         <header class="hero">
             <h1>Smart Talent Selection</h1>
             <p class="subtitle">Paste a job description, upload resumes, and get ranked candidates with skill-level insights.</p>
         </header>
 
-        <form class="card form-grid" action="/analyze" method="POST" enctype="multipart/form-data">
+        <form id="analyze-form" class="card form-grid" action="/analyze" method="POST" enctype="multipart/form-data">
             <label for="job_title">Job Title</label>
             <input id="job_title" type="text" name="job_title" placeholder="e.g. Data Analyst Intern">
 
@@ -22,8 +30,36 @@
             <input id="resumes" type="file" name="resumes" multiple required>
             <p class="hint">Supported formats: PDF, DOCX, TXT, JPG, PNG</p>
 
-            <button type="submit">Analyze Candidates</button>
+            <button id="analyze-btn" type="submit">Analyze Candidates</button>
         </form>
     </main>
+
+    <script>
+        (function () {
+            const form = document.getElementById("analyze-form");
+            const button = document.getElementById("analyze-btn");
+            const overlay = document.getElementById("loading-overlay");
+
+            if (!form || !button || !overlay) {
+                return;
+            }
+
+            form.addEventListener("submit", function () {
+                document.body.classList.add("is-loading");
+                overlay.classList.add("active");
+                overlay.setAttribute("aria-hidden", "false");
+                button.disabled = true;
+                button.textContent = "Analyzing...";
+            });
+
+            window.addEventListener("pageshow", function () {
+                document.body.classList.remove("is-loading");
+                overlay.classList.remove("active");
+                overlay.setAttribute("aria-hidden", "true");
+                button.disabled = false;
+                button.textContent = "Analyze Candidates";
+            });
+        })();
+    </script>
 </body>
 </html>

@@ -161,9 +161,7 @@ def is_valid_skill(skill):
 		return False
 
 	# Reject if starts with lowercase or special chars (likely mid-sentence fragment)
-	if skill and skill[0].islower() and skill[0] not in ["c", "c#", "c++", "objective-c", "f#"]:
-		if not skill.startswith(("c ", "c# ", "c++ ", "f# ", "objective-c")):
-			return False
+	
 
 	# Reject if too long or too short
 	if len(skill.strip()) < 2 or len(skill.strip()) > 50:
@@ -216,9 +214,9 @@ def parse_skills(text):
 			line_lower = line.lower()
 			has_verb = any(verb in line_lower for verb in description_verbs)
 			has_prep = any(prep in line_lower for prep in description_prepositions)
+			is_skill_list = line.count(",") >= 3
 			
-			# If it's long AND has description markers, skip it entirely
-			if has_verb or has_prep:
+			if (has_verb or has_prep) and not is_skill_list:
 				continue
 
 		# Remove known prefixes
@@ -231,7 +229,7 @@ def parse_skills(text):
 
 		# ✅ Only process short listing-style lines (skill lists, comma-separated)
 		# If line is still very long, it's probably a description
-		if len(line) > 100:
+		if len(line) > 100 and line.count(",") < 3:
 			continue
 
 		# Split by common delimiters
