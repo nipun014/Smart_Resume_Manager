@@ -1,8 +1,5 @@
 # Smart Resume Manager
 
-## Project Title
-Cymonic Resume-JD Smart Matcher
-
 ## The Problem
 Recruiters and hiring teams often spend significant time manually reviewing resumes against a job description, especially when resumes come in mixed formats such as PDF, DOCX, TXT, and images. This manual process is slow, inconsistent, and makes it harder to quickly identify the strongest candidates based on required skills and role fit.
 
