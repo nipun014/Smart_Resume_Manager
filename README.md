@@ -72,29 +72,6 @@ python app/app.py
 3. **Access the web interface:**
 Open your browser and navigate to `http://127.0.0.1:5000`
 
-## Deploying to Vercel
-### 1. Push the repository to GitHub
-Vercel deploys cleanly from a GitHub repository.
-
-### 2. Import the repo in Vercel
-In the Vercel dashboard, choose New Project and import this repository.
-
-### 3. Keep the defaults
-Use the Python runtime that Vercel detects automatically. No custom build command is required for this project.
-
-### 4. Add environment variables
-Set `GEMINI_API_KEY` in the Vercel project settings.
-
-### 5. Deploy
-After deployment, open the generated Vercel URL and test with a TXT, PDF, or DOCX resume first.
-
-## Project Structure
-- `app/` - Flask routes and templates wiring
-- `parser_v1/` - resume parsing and text extraction
-- `profile/` - candidate profile building
-- `scoring/` - scoring and justification logic
-- `api/index.py` - Vercel entrypoint
-- `vercel.json` - Vercel routing config
 
 ## Notes
 - Gemini quota or rate-limit errors fall back gracefully, so scoring still works.
