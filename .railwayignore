@@ -1,0 +1,16 @@
+.git
+.gitignore
+.venv
+__pycache__
+*.pyc
+.DS_Store
+test_data/
+test_outputs/
+uploads/
+*.pdf
+*.jpg
+*.jpeg
+*.png
+*.docx
+.env
+.env.local
