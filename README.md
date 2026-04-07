@@ -1,6 +1,10 @@
 # Cymonic Resume-JD Smart Matcher
 
-Flask app for comparing resumes against a job description, ranking candidates, and generating short AI justifications for the top matches.
+## Project Title
+Cymonic Resume-JD Smart Matcher
+
+## The Problem
+Recruiters and hiring teams often spend significant time manually reviewing resumes against a job description, especially when resumes come in mixed formats such as PDF, DOCX, TXT, and images. This manual process is slow, inconsistent, and makes it harder to quickly identify the strongest candidates based on required skills and role fit.
 
 ## What It Does
 - Upload multiple resumes and a single job description.
