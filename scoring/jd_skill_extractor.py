@@ -68,6 +68,25 @@ PREFIX_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+YEARS_PATTERN = re.compile(r"(\d+(?:\.\d+)?)\s*\+?\s*(?:years?|yrs?)", re.IGNORECASE)
+
+HIGH_PRIORITY_MARKERS = (
+    "must have",
+    "mandatory",
+    "required",
+    "requirement",
+)
+
+LOW_PRIORITY_MARKERS = (
+    "nice to have",
+    "good to have",
+    "preferred",
+    "plus",
+    "bonus",
+)
+
+PRIORITY_RANK = {"low": 0, "medium": 1, "high": 2}
+
 
 def _alias_to_pattern(alias):
     escaped = re.escape(alias.lower())
@@ -77,20 +96,40 @@ def _alias_to_pattern(alias):
 
 def _normalize_text(text):
     text = PREFIX_PATTERN.sub(" ", text)
-    text = re.sub(r"\b\d+\+?\s*(years?|yrs?)\b", " ", text, flags=re.IGNORECASE)
     text = re.sub(r"\s+", " ", text)
     return text.strip()
 
 
-def extract_skills(job_description):
-    text = _normalize_text(job_description)
+def _split_sentences(text):
+    normalized = re.sub(r"[\r\n]+", "\n", text)
+    chunks = re.split(r"[\n\.\;]+", normalized)
+    return [chunk.strip() for chunk in chunks if chunk.strip()]
+
+
+def _detect_priority(text):
+    lowered = text.lower()
+    if any(marker in lowered for marker in HIGH_PRIORITY_MARKERS):
+        return "high"
+    if any(marker in lowered for marker in LOW_PRIORITY_MARKERS):
+        return "low"
+    return "medium"
+
+
+def _extract_years(text):
+    matches = YEARS_PATTERN.findall(text)
+    if not matches:
+        return 0.0
+    return max(float(item) for item in matches)
+
+
+def extract_jd_profile(job_description):
+    text = _normalize_text(job_description or "")
     text_lower = text.lower()
 
     for phrase in NOISE_PHRASES:
         text_lower = text_lower.replace(phrase, " ")
 
-    first_positions = {}
-
+    skill_positions = {}
     for canonical, aliases in SKILL_ALIASES.items():
         patterns = [_alias_to_pattern(alias) for alias in aliases]
         best_pos = None
@@ -101,10 +140,46 @@ def extract_skills(job_description):
                 if best_pos is None or pos < best_pos:
                     best_pos = pos
         if best_pos is not None:
-            first_positions[canonical] = best_pos
+            skill_positions[canonical] = best_pos
 
-    ordered = sorted(first_positions.items(), key=lambda item: item[1])
-    return [name for name, _ in ordered]
+    jd_profile = {"skills": {}}
+    sentences = _split_sentences(job_description or "")
+
+    for skill_name, _ in sorted(skill_positions.items(), key=lambda item: item[1]):
+        aliases = SKILL_ALIASES.get(skill_name, [skill_name])
+        patterns = [_alias_to_pattern(alias) for alias in aliases]
+
+        required_years = 0.0
+        priority_signals = set()
+
+        for sentence in sentences:
+            for pattern in patterns:
+                if pattern.search(sentence):
+                    sentence_years = _extract_years(sentence)
+                    if sentence_years > required_years:
+                        required_years = sentence_years
+
+                    priority_signals.add(_detect_priority(sentence))
+                    break
+
+        if "high" in priority_signals:
+            priority = "high"
+        elif "low" in priority_signals:
+            priority = "low"
+        else:
+            priority = "medium"
+
+        jd_profile["skills"][skill_name] = {
+            "required_years": required_years,
+            "priority": priority,
+        }
+
+    return jd_profile
+
+
+def extract_skills(job_description):
+    jd_profile = extract_jd_profile(job_description)
+    return list(jd_profile.get("skills", {}).keys())
 
 
 def _read_input(input_file):

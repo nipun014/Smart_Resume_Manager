@@ -24,6 +24,7 @@
                         <th>Final Score</th>
                         <th>Keyword Score</th>
                         <th>Semantic Score</th>
+                        <th>Experience Score</th>
                         <th>Matched Skills</th>
                         <th>Missing Skills</th>
                     </tr>
@@ -45,6 +46,7 @@
                         </td>
                         <td>{{ candidate.keyword_score }}%</td>
                         <td>{{ candidate.semantic_score }}%</td>
+                        <td>{{ candidate.experience_score }}%</td>
                         <td>
                             {% if candidate.matched_skills %}
                                 {% for skill in candidate.matched_skills %}

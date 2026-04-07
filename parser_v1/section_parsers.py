@@ -1,5 +1,60 @@
 import re
+from datetime import datetime
 
+DATE_RANGE_PATTERN = re.compile(
+	r"(?P<start>(?:\d{1,2}[/-]\d{4}|[A-Za-z]{3,9}\s+\d{4}|\d{4}))\s*(?:-|–|—|to)\s*(?P<end>(?:\d{1,2}[/-]\d{4}|[A-Za-z]{3,9}\s+\d{4}|\d{4}|Present|Current|Now))",
+	re.IGNORECASE,
+)
+
+EXPLICIT_DURATION_PATTERN = re.compile(
+	r"(\d+(?:\.\d+)?)\s*(years?|yrs?|months?|mos?)",
+	re.IGNORECASE,
+)
+
+
+def parse_date(date_str):
+	"""Parse resume date tokens into datetime. Handles Present/Current as now."""
+	if not date_str:
+		return None
+
+	token = date_str.strip()
+	token_lower = token.lower()
+	if token_lower in {"present", "current", "now"}:
+		return datetime.now()
+
+	month_year_match = re.fullmatch(r"(\d{1,2})[/-](\d{4})", token)
+	if month_year_match:
+		month = int(month_year_match.group(1))
+		year = int(month_year_match.group(2))
+		if 1 <= month <= 12:
+			return datetime(year, month, 1)
+
+	year_only_match = re.fullmatch(r"\d{4}", token)
+	if year_only_match:
+		return datetime(int(token), 1, 1)
+
+	for fmt in ("%b %Y", "%B %Y"):
+		try:
+			return datetime.strptime(token, fmt)
+		except ValueError:
+			continue
+
+	return None
+
+
+def compute_duration(start, end):
+	"""Compute duration in years between two datetimes as a non-negative float."""
+	if not start or not end:
+		return 0.0
+
+	months = (end.year - start.year) * 12 + (end.month - start.month)
+	if end.day < start.day:
+		months -= 1
+
+	if months < 0:
+		return 0.0
+
+	return round(months / 12.0, 2)
 
 def group_blocks(text):
     blocks = []
@@ -90,11 +145,56 @@ def parse_experience(text):
 			continue
 		description = " ".join(cleaned_lines)
 
-		date_pattern = r"(\d{1,2}/?\d{4}|\d{4})\s*[-–]\s*(\d{1,2}/?\d{4}|\d{4}|Present|Current)"
-		dates = re.findall(date_pattern, description)
 		date_range = ""
-		if dates:
-			date_range = f"{dates[0][0]} - {dates[0][1]}"
+		duration_years = 0.0
+		duration_source = "none"
+		confidence = "low"
+
+		best_date_years = 0.0
+		best_date_range = ""
+		for date_match in DATE_RANGE_PATTERN.finditer(description):
+			start_raw = date_match.group("start")
+			end_raw = date_match.group("end")
+			start_date = parse_date(start_raw)
+			end_date = parse_date(end_raw)
+			computed_years = compute_duration(start_date, end_date)
+			if computed_years > best_date_years:
+				best_date_years = computed_years
+				best_date_range = f"{start_raw} - {end_raw}"
+
+		if best_date_years > 0:
+			date_range = best_date_range
+			duration_years = best_date_years
+			duration_source = "date_range"
+			confidence = "high"
+
+		if duration_source == "none":
+			explicit_duration = extract_duration_from_text(description)
+			if explicit_duration > 0:
+				duration_years = explicit_duration
+				duration_source = "explicit_text"
+				confidence = "medium"
+
+		if duration_source == "none":
+			desc_lower = description.lower()
+			if "summer intern" in desc_lower:
+				duration_years = 0.25
+				duration_source = "heuristic"
+				confidence = "low"
+			elif "internship" in desc_lower:
+				explicit_intern_duration = extract_duration_from_text(description)
+				if explicit_intern_duration > 0:
+					duration_years = explicit_intern_duration
+					duration_source = "explicit_text"
+					confidence = "medium"
+				else:
+					duration_years = 0.3
+					duration_source = "heuristic"
+					confidence = "low"
+			elif "intern" in desc_lower:
+				duration_years = 0.3
+				duration_source = "heuristic"
+				confidence = "low"
 
 		role = "Not specified"
 		company = strip_duration_tail(title) if title else "Not specified"
@@ -122,6 +222,9 @@ def parse_experience(text):
 			"company": company if company else "Not specified",
 			"role": role if role else "Not specified",
 			"date_range": date_range,
+			"duration_years": float(duration_years),
+			"duration_source": duration_source,
+			"confidence": confidence,
 			"description": description,
 		}
 		result.append(entry)
@@ -227,7 +330,6 @@ def parse_skills(text):
 		if not line:
 			continue
 
-		# ✅ Only process short listing-style lines (skill lists, comma-separated)
 		# If line is still very long, it's probably a description
 		if len(line) > 100 and line.count(",") < 3:
 			continue
@@ -255,3 +357,34 @@ def parse_skills(text):
 			validated_skills.append(skill)
 	
 	return list(set(validated_skills))
+
+
+def extract_duration_from_text(text):
+	"""Extract explicit durations like '2 years', '1 year 6 months', or '6 months'."""
+	best_years = 0.0
+	last_year_value = None
+	last_year_end = -1
+
+	for match in EXPLICIT_DURATION_PATTERN.finditer(text):
+		value = float(match.group(1))
+		unit = match.group(2).lower()
+
+		if "year" in unit or "yr" in unit:
+			if value > best_years:
+				best_years = value
+			last_year_value = value
+			last_year_end = match.end()
+		elif "month" in unit or "mo" in unit:
+			month_years = value / 12.0
+			if month_years > best_years:
+				best_years = month_years
+
+			# Combine adjacent year + month tokens such as "1 year 6 months".
+			if last_year_value is not None:
+				gap = match.start() - last_year_end
+				if 0 <= gap <= 8:
+					combined = last_year_value + month_years
+					if combined > best_years:
+						best_years = combined
+
+	return round(best_years, 2)

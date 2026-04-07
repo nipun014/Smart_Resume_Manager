@@ -8,14 +8,15 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from scoring.jd_skill_extractor import extract_skills
+from scoring.jd_skill_extractor import extract_jd_profile, extract_skills
 from scoring.scorer import score_candidate
 from scoring.justification import generate_justification
 from parser_v1.loader import load_file        # reads the file -> gives you raw text
 from parser_v1.parser import split_sections   # splits text into sections
-from parser_v1.section_parsers import parse_skills  # extracts skills from the skills section
+from parser_v1.section_parsers import parse_experience, parse_skills  # extracts skills from parsed sections
 from parser_v1.cleaner import clean_text
 from scoring.final_scorer import final_score
+from profile.builder import build_profile
 
 
 
@@ -34,7 +35,8 @@ def analyze():
     files = request.files.getlist("resumes")         # get uploaded files list
     candidates = []
     
-    # Extract JD skills once
+    # Extract JD skills/profile once
+    jd_profile = extract_jd_profile(jd_text)
     jd_skills = extract_skills(jd_text)
 
     for file in files:
@@ -61,12 +63,21 @@ def analyze():
                 sections.get("experience", ""),
             ])
             candidate_skills = parse_skills(skills_text)
+            experience_entries = parse_experience(sections.get("experience", ""))
+            profile = build_profile(experience_entries, candidate_skills)
             parse_elapsed = time.perf_counter() - parse_start
             app.logger.info("[TIMING] %s parse/load: %.2fs", candidate_name, parse_elapsed)
 
             # 4. score
             score_start = time.perf_counter()
-            scores = final_score(jd_text, jd_skills, resume_text, candidate_skills)
+            scores = final_score(
+                jd_text,
+                jd_skills,
+                resume_text,
+                candidate_skills,
+                profile=profile,
+                jd_profile=jd_profile,
+            )
             score_elapsed = time.perf_counter() - score_start
             app.logger.info("[TIMING] %s scoring: %.2fs", candidate_name, score_elapsed)
             
@@ -80,11 +91,14 @@ def analyze():
                 "score": scores["final"],
                 "keyword_score": scores["keyword"],
                 "semantic_score": scores["semantic"],
+                "experience_score": scores.get("experience", 0),
+                "score_breakdown": scores,
                 "skills": candidate_skills,
                 "jd_skills": jd_skills,
                 "resume_text": resume_text,
                 "matched_skills": matched_skills,
-                "missing_skills": missing_skills
+                "missing_skills": missing_skills,
+                "profile": profile,
             }
             
             # 6. append to candidates
@@ -118,7 +132,11 @@ def analyze():
             candidate["justification"] = generate_justification(
                 jd_text, 
                 candidate.get("resume_text", ""),
-                candidate["score"]
+                candidate["score"],
+                jd_skills=jd_skills,
+                candidate_skills=candidate.get("skills", []),
+                scores=candidate.get("score_breakdown", {}),
+                profile=candidate.get("profile", {}),
             )
             app.logger.info(
                 "[TIMING] %s justification: %.2fs",

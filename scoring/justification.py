@@ -12,7 +12,7 @@ if not api_key:
 
 client = genai.Client(api_key=api_key)
 
-# Try stable model ids in order; first available one is used.
+
 MODEL_CANDIDATES = [
     "gemini-flash-latest",
     "gemini-flash-lite-latest",
@@ -20,7 +20,6 @@ MODEL_CANDIDATES = [
     "gemini-2.0-flash-lite",
     "gemini-1.5-flash-latest",
 ]
-
 
 # When a model hits quota/rate limits, park it briefly and fail over to the next one.
 MODEL_RATE_LIMIT_COOLDOWN_SECONDS = 90
@@ -40,45 +39,14 @@ _MODEL_STATE = {
     }
     for name in MODEL_CANDIDATES
 }
-_DISCOVERY_CACHE = {"expires_at": 0.0, "models": []}
-
-
 def _is_rate_limited(exc):
     text = str(exc).lower()
     return any(marker in text for marker in _RATE_LIMIT_MARKERS)
 
 
 def _discover_available_models():
-    """Discover additional generate-capable Gemini model ids, cached for stability."""
-    now = time.monotonic()
-    with _MODEL_STATE_LOCK:
-        if now < _DISCOVERY_CACHE["expires_at"]:
-            return list(_DISCOVERY_CACHE["models"])
-
-    discovered = []
-    try:
-        for model in client.models.list():
-            name = getattr(model, "name", "")
-            if not name:
-                continue
-
-            # SDK may return names in the form "models/<id>".
-            model_id = name.split("/", 1)[-1]
-            methods = [m.lower() for m in (getattr(model, "supported_generation_methods", []) or [])]
-
-            if "gemini" not in model_id.lower():
-                continue
-            if methods and "generatecontent" not in methods:
-                continue
-            discovered.append(model_id)
-    except Exception:
-        discovered = []
-
-    with _MODEL_STATE_LOCK:
-        _DISCOVERY_CACHE["models"] = discovered
-        _DISCOVERY_CACHE["expires_at"] = time.monotonic() + 600
-
-    return list(discovered)
+    """Removed dynamic model discovery to prevent severe performance regression."""
+    return []
 
 
 def _get_attempt_order():
@@ -148,7 +116,16 @@ def _generate_with_fallback(prompt):
         )
     return "Justification unavailable right now because no model candidates were configured."
 
-def generate_justification(jd_text, resume_text, score):
+
+def generate_justification(
+    jd_text,
+    resume_text,
+    score,
+    jd_skills=None,
+    candidate_skills=None,
+    scores=None,
+    profile=None,
+):
     prompt = f"""
     You are a recruiter assistant.
     
@@ -163,5 +140,5 @@ def generate_justification(jd_text, resume_text, score):
     Write exactly 2 sentences explaining why this candidate 
     is or isn't a good fit. Be specific about skills and experience.
     """
-    
+
     return _generate_with_fallback(prompt)
