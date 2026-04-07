@@ -1,0 +1,9 @@
+Flask
+sentence-transformers
+scikit-learn
+python-dotenv
+google-genai
+pypdf
+python-docx
+Pillow
+pytesseract

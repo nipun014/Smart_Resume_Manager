@@ -15,6 +15,7 @@ test_justification.py
 !README.md
 *.json
 *.txt
+!requirements.txt
 test_data
 test_outputs
 uploads
